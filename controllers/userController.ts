@@ -84,14 +84,12 @@ export const deleteUser = async (req: Request, res: Response): Promise<void> => 
       where: { id },
       select: { id: true, name: true, email: true, createdAt: true },
     });
-    res.status(200).json(user);
+    res.status(200).json({ meassage: userMeassages.userDeletedSuccessfully, user: user });
   } catch (error) {
     console.log(error);
-    res
-      .status(500)
-      .json({
-        error: error instanceof Error ? error.message : serverMeassages.internalServerError,
-      });
+    res.status(500).json({
+      error: error instanceof Error ? error.message : serverMeassages.internalServerError,
+    });
   }
 };
 
@@ -123,11 +121,9 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
     res.status(201).json({ message: userMeassages.userCreatedSuccessfully, user });
   } catch (error: unknown) {
     console.error("Error creating user:", error);
-    res
-      .status(500)
-      .json({
-        error: error instanceof Error ? error.message : serverMeassages.internalServerError,
-      });
+    res.status(500).json({
+      error: error instanceof Error ? error.message : serverMeassages.internalServerError,
+    });
   }
 };
 
