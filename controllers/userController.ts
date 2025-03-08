@@ -2,6 +2,7 @@ import { cPrisma } from "../Shared/Global";
 import type { Request, Response } from "express";
 import { loginValidator, signupValidator, updateUserValidator } from "../validator/userValidator";
 import { responceMeassage } from "../Shared/Constant";
+import jwt from "jsonwebtoken";
 
 const { userMeassages, serverMeassages } = responceMeassage;
 // todo create the constant for Responce meassage
@@ -84,6 +85,7 @@ export const deleteUser = async (req: Request, res: Response): Promise<void> => 
       where: { id },
       select: { id: true, name: true, email: true, createdAt: true },
     });
+
     res.status(200).json({ meassage: userMeassages.userDeletedSuccessfully, user: user });
   } catch (error) {
     console.log(error);
@@ -139,7 +141,10 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
 
     const { email, password } = validation.data;
 
-    const user = await cPrisma.user.findUnique({ where: { email } });
+    const user = await cPrisma.user.findUnique({
+      where: { email },
+      select: { id: true, name: true, email: true, password: true },
+    });
     if (!user) {
       res.status(401).json({ error: userMeassages.invalidCredentials });
       return;
@@ -154,12 +159,37 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _, ...userWithoutPassword } = user;
 
+    const token = jwt.sign({ data: userWithoutPassword }, process.env.JSON_WEB_TOKEN_SECRET!, {
+      expiresIn: "24h",
+    });
+
+    res.cookie("auth", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+    });
+
+    localStorage.setItem("auth", token);
+
     res.status(200).json({
       message: "Login successful",
       user: userWithoutPassword,
     });
   } catch (error) {
     console.error("Error logging in user:", error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : serverMeassages.internalServerError,
+    });
+  }
+};
+
+export const logOutUser = async (req: Request, res: Response) => {
+  try {
+    res.clearCookie("auth");
+    localStorage.removeItem("auth");
+    res.status(200).json({ message: userMeassages.userLoggedOutSuccessfully });
+  } catch (error) {
+    console.log(error);
     res.status(500).json({
       error: error instanceof Error ? error.message : serverMeassages.internalServerError,
     });

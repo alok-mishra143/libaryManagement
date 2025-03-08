@@ -5,12 +5,14 @@ import {
   getAllUsers,
   getUserById,
   loginUser,
+  logOutUser,
   updateUser,
 } from "../controllers/userController";
 const userRoute = express.Router();
 
 userRoute.post("/signup", createUser);
 userRoute.post("/login", loginUser);
+userRoute.post("/logout", logOutUser);
 userRoute.get("/:id", getUserById);
 userRoute.patch("/:id", updateUser);
 userRoute.delete("/:id", deleteUser);
