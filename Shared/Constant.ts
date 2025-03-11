@@ -23,13 +23,11 @@ export const responceMeassage = {
     bookBorrowedSuccessfully: "Book borrowed successfully",
     bookReturnedSuccessfully: "Book returned successfully",
   },
-
   serverMeassages: {
     unknownError: "Unknown error",
     internalServerError: "Internal server error",
   },
 };
-
 export enum BorrowType {
   BORROWED = "BORROWED",
   RETURNED = "RETURNED",

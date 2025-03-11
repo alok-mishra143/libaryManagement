@@ -1,10 +1,7 @@
 import z from "zod";
 
 export const bookSchema = z.object({
-  id: z
-    .string({ required_error: "Book ID is required." })
-
-    .optional(),
+  id: z.string({ required_error: "Book ID is required." }).trim(),
 
   bookCode: z
     .string({ required_error: "Book code is required." })
@@ -47,6 +44,15 @@ export const bookSchema = z.object({
 });
 
 export const addBookValidator = bookSchema.pick({
+  bookCode: true,
+  title: true,
+  author: true,
+  description: true,
+  price: true,
+  stock: true,
+});
+
+export const updateBookValidator = bookSchema.pick({
   bookCode: true,
   title: true,
   author: true,

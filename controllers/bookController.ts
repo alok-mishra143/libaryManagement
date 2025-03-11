@@ -1,7 +1,7 @@
 import { cPrisma } from "../Shared/Global";
 import type { Request, Response } from "express";
 import { responceMeassage } from "../Shared/Constant";
-import { bookSchema } from "../validator/bookValidator";
+import { addBookValidator, updateBookValidator } from "../validator/bookValidator";
 
 const { bookMeassages, serverMeassages } = responceMeassage;
 
@@ -15,44 +15,58 @@ const handleError = (res: Response, error: unknown, message = "Internal server e
 };
 
 // ✅ Add or Update Book
-export const addOrUpdateBook = async (req: Request, res: Response): Promise<void> => {
+export const addBook = async (req: Request, res: Response): Promise<void> => {
   try {
-    const validation = await bookSchema.safeParseAsync(req.body);
+    const validation = await addBookValidator.safeParseAsync(req.body);
     if (!validation.success) {
       res.status(400).json({ success: false, error: validation.error.format() });
       return;
     }
 
-    const { id, bookCode, title, author, description, price, stock } = validation.data;
+    const { bookCode, title, author, description, price, stock } = validation.data;
 
-    // ✅ Ensure ID is required for updating
-    if (id) {
-      const existingBook = await cPrisma.book.findUnique({ where: { id } });
-      if (!existingBook) {
-        res.status(404).json({ success: false, message: bookMeassages.bookNotFound });
-        return;
-      }
-    }
-
-    const book = await cPrisma.book.upsert({
-      where: { bookCode },
-      update: {
-        title,
-        author,
-        description,
-        price,
-        stock: { increment: stock },
-        updatedAt: new Date(),
-      },
-      create: { bookCode, title, author, description, price, stock },
+    const book = await cPrisma.book.create({
+      data: { bookCode, title, author, description, price, stock },
     });
 
-    res.status(id ? 200 : 201).json({
+    res.status(200).json({
       success: true,
-      message: id ? bookMeassages.bookCreatedSuccessfully : bookMeassages.bookUpdatedSuccessfully,
+      message: bookMeassages.bookCreatedSuccessfully,
       data: book,
     });
   } catch (error) {
+    handleError(res, error, serverMeassages.unknownError);
+  }
+};
+
+// ✅  Update Book
+
+export const updateBook = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      res.status(400).json({ success: false, message: bookMeassages.bookIdNotfound });
+      return;
+    }
+    const validator = await updateBookValidator.safeParseAsync(req.body);
+    if (!validator.success) {
+      res.status(400).json({ success: false, error: validator.error.format() });
+      return;
+    }
+    const { bookCode, title, author, description, price, stock } = validator.data;
+
+    const book = await cPrisma.book.update({
+      where: { id },
+      data: { bookCode, title, author, description, price, stock },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: bookMeassages.bookUpdatedSuccessfully,
+      data: book,
+    });
+  } catch (error) {
+    console.error(error);
     handleError(res, error, serverMeassages.unknownError);
   }
 };
