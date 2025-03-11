@@ -2,6 +2,7 @@ import { BorrowType, responceMeassage } from "../Shared/Constant";
 import { cPrisma } from "../Shared/Global";
 import type { Request, Response } from "express";
 import { addBorrowValidator } from "../validator/borrowValidator";
+import { sendMail } from "../mail/sendMail";
 
 const { serverMeassages, borrowMeassages, userMeassages } = responceMeassage;
 
@@ -59,10 +60,17 @@ export const addBorrow = async (req: Request, res: Response): Promise<void> => {
       }),
     ]);
 
+    const borrowMail = await sendMail({
+      to: user.email,
+      subject: borrowMeassages.bookBorrowedSuccessfully,
+      text: `${borrowMeassages.bookBorrowedSuccessfully} "${book.title}"!`,
+    });
+
     res.status(201).json({
       success: true,
       message: borrowMeassages.bookBorrowedSuccessfully,
       borrow: borrow[1],
+      mail: borrowMail,
     });
   } catch (error) {
     handleError(res, error, serverMeassages.unknownError);
@@ -84,6 +92,14 @@ export const returnBorrow = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
+    const user = await cPrisma.user.findUnique({
+      where: { id: borrow.userId },
+    });
+    if (!user) {
+      res.status(404).json({ success: false, error: userMeassages.userNotFound });
+      return;
+    }
+
     if (borrow.status === BorrowType.RETURNED) {
       res.status(400).json({ success: false, error: borrowMeassages.bookAlreadyReturned });
       return;
@@ -100,8 +116,15 @@ export const returnBorrow = async (req: Request, res: Response): Promise<void> =
         data: { stock: { increment: 1 } },
       }),
     ]);
+    const returnMail = await sendMail({
+      to: user.email,
+      subject: borrowMeassages.bookReturnedSuccessfully,
+      text: `${borrowMeassages.bookReturnedSuccessfully} "${borrow.book.title}"!`,
+    });
 
-    res.status(200).json({ success: true, message: borrowMeassages.bookReturnedSuccessfully });
+    res
+      .status(200)
+      .json({ success: true, message: borrowMeassages.bookReturnedSuccessfully, mail: returnMail });
   } catch (error) {
     handleError(res, error, serverMeassages.unknownError);
   }
